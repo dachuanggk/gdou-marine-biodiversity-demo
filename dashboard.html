@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>数据看板 - 海洋生物多样性信息管理系统</title>
+  <link rel="stylesheet" href="vendor/element-plus/index.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="topnav-host"></div>
+
+  <div id="app">
+    <div class="module-wrap">
+      <div class="module-header">
+        <div>
+          <h2 class="module-title">📊 数据可视化与报表</h2>
+          <p class="module-desc">物种多样性与监测成果的可视化统计，支持数据清单导出（CSV，可用 Excel 打开）</p>
+        </div>
+        <div style="display:flex;gap:10px">
+          <el-button size="small" @click="reload">🔄 刷新数据</el-button>
+          <el-button size="small" type="success" plain @click="exportSpecies">⬇ 导出物种清单</el-button>
+          <el-button size="small" type="primary" plain @click="exportObs">⬇ 导出观测记录</el-button>
+        </div>
+      </div>
+
+      <div class="stat-cards">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#e8f1fb">🐠</div>
+          <div class="stat-info"><div class="stat-num">{{ stats.species }}</div><div class="stat-label">物种总记录</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#e8fbf0">🌿</div>
+          <div class="stat-info"><div class="stat-num">{{ stats.ecos }}</div><div class="stat-label">生态系统</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#fdf0e8">🔭</div>
+          <div class="stat-info"><div class="stat-num">{{ stats.obs }}</div><div class="stat-label">观测记录</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#fde8e8">⚠️</div>
+          <div class="stat-info"><div class="stat-num">{{ stats.threatened }}</div><div class="stat-label">受威胁物种(易危及以上)</div></div>
+        </div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="chart-box">
+          <div class="chart-title">🌏 物种门类组成</div>
+          <div ref="chartPhylum" class="chart-canvas"></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">⚠️ 濒危等级分布（IUCN）</div>
+          <div ref="chartCons" class="chart-canvas"></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">🌿 各生态系统观测记录数</div>
+          <div ref="chartEco" class="chart-canvas"></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">🛡️ 保护等级分布</div>
+          <div ref="chartPro" class="chart-canvas"></div>
+        </div>
+      </div>
+
+      <div class="chart-box full" style="margin-top:16px">
+        <div class="chart-title">📍 观测点位分布（按经度 · 纬度）</div>
+        <div ref="chartMap" class="chart-canvas" style="height:380px"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/vue.global.js"></script>
+  <script src="vendor/element-plus/index.full.min.js"></script>
+  <script src="vendor/element-plus/locale/zh-cn.min.js"></script>
+  <script src="vendor/echarts.min.js"></script>
+  <script src="js/seed.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/page-dashboard.js"></script>
+</body>
+</html>

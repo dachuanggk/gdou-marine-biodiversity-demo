@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>登录 - 海洋生物多样性信息管理系统</title>
+  <link rel="stylesheet" href="vendor/element-plus/index.css" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif; }
+    .login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: linear-gradient(135deg, #0b3a63 0%, #115f8f 40%, #0e8bbf 100%);
+    }
+    .login-card {
+      width: 860px;
+      max-width: 100%;
+      min-height: 500px;
+      background: #fff;
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      box-shadow: 0 20px 60px rgba(0, 30, 60, .4);
+    }
+    .login-left {
+      width: 340px;
+      padding: 40px 32px;
+      color: #fff;
+      background: linear-gradient(160deg, #0e6fb0, #0b3a63);
+      display: flex;
+      flex-direction: column;
+    }
+    .login-left h1 { font-size: 24px; line-height: 1.4; margin-bottom: 14px; }
+    .login-left .sub { font-size: 13px; opacity: .85; line-height: 1.8; margin-bottom: 26px; }
+    .login-left ul { list-style: none; font-size: 13px; opacity: .95; line-height: 2.2; }
+    .login-left ul li::before { content: '🐚 '; }
+    .login-left .univ { margin-top: auto; font-size: 12px; opacity: .7; }
+    .login-right { flex: 1; padding: 36px 40px; }
+    .login-right .title { font-size: 20px; color: #1f2d3d; margin-bottom: 18px; }
+    .quick-login { margin-top: 18px; }
+    .quick-login .ql-label { font-size: 12px; color: #909399; margin-bottom: 8px; }
+    .quick-login .ql-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+    .reg-hint { font-size: 12px; color: #909399; margin-top: 8px; line-height: 1.7; }
+    .footer-line { margin-top: 22px; text-align: center; font-size: 12px; color: #a8abb2; }
+  </style>
+</head>
+<body>
+  <div id="login-app">
+    <div class="login-page">
+      <div class="login-card">
+        <!-- 左侧介绍 -->
+        <div class="login-left">
+          <h1>🌊 海洋生物多样性<br />信息管理系统</h1>
+          <p class="sub">广东海洋大学海洋生物多样性数据管理平台，服务科研、教学与公众科普。</p>
+          <ul>
+            <li>模块一 · 用户与权限管理</li>
+            <li>模块二 · 物种信息管理</li>
+            <li>模块三 · 生态系统与观测记录</li>
+            <li>模块四 · 数据可视化与报表</li>
+          </ul>
+          <div class="univ">广东海洋大学 · 海洋生物多样性课题组</div>
+        </div>
+
+        <!-- 右侧表单 -->
+        <div class="login-right">
+          <el-tabs v-model="tab">
+            <el-tab-pane label="账号登录" name="login">
+              <el-form ref="loginRef" :model="loginForm" :rules="loginRules" label-width="0">
+                <el-form-item prop="username">
+                  <el-input v-model="loginForm.username" size="large" placeholder="请输入用户名" clearable>
+                    <template #prefix>👤</template>
+                  </el-input>
+                </el-form-item>
+                <el-form-item prop="password">
+                  <el-input v-model="loginForm.password" size="large" type="password" placeholder="请输入密码" show-password @keyup.enter="doLogin">
+                    <template #prefix>🔒</template>
+                  </el-input>
+                </el-form-item>
+                <el-button type="primary" size="large" style="width:100%" :loading="loading" @click="doLogin">登 录</el-button>
+              </el-form>
+
+              <div class="quick-login">
+                <div class="ql-label">快捷演示登录（密码均为 123456）</div>
+                <div class="ql-btns">
+                  <el-button v-for="a in quickAccounts" :key="a.username" size="small" @click="quickLogin(a)">{{ a.label }}</el-button>
+                </div>
+              </div>
+            </el-tab-pane>
+
+            <el-tab-pane label="注册申请" name="reg">
+              <el-form ref="regRef" :model="regForm" :rules="regRules" label-width="70px">
+                <el-form-item label="用户名" prop="username">
+                  <el-input v-model="regForm.username" placeholder="字母或数字" />
+                </el-form-item>
+                <el-form-item label="昵称" prop="nickname">
+                  <el-input v-model="regForm.nickname" placeholder="您的称呼" />
+                </el-form-item>
+                <el-form-item label="邮箱">
+                  <el-input v-model="regForm.email" placeholder="选填" />
+                </el-form-item>
+                <el-form-item label="角色">
+                  <el-radio-group v-model="regForm.role">
+                    <el-radio value="student">学生</el-radio>
+                    <el-radio value="public">公众</el-radio>
+                  </el-radio-group>
+                </el-form-item>
+                <el-form-item label="密码" prop="password">
+                  <el-input v-model="regForm.password" type="password" placeholder="请设置密码" show-password />
+                </el-form-item>
+                <el-button type="primary" size="large" style="width:100%" :loading="loading" @click="doRegister">提交注册申请</el-button>
+              </el-form>
+              <p class="reg-hint">学生 / 公众账号申请后需由<strong>管理员审核</strong>方可登录。科研人员与教师账号由管理员统一分配。</p>
+            </el-tab-pane>
+          </el-tabs>
+          <div class="footer-line">纯前端演示版 · 数据存储于浏览器本地</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/vue.global.js"></script>
+  <script src="vendor/element-plus/index.full.min.js"></script>
+  <script src="vendor/element-plus/locale/zh-cn.min.js"></script>
+  <script src="js/seed.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/page-login.js"></script>
+</body>
+</html>

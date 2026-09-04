@@ -3,136 +3,110 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>海洋生物多样性信息管理系统 - 物种信息管理</title>
+  <title>物种信息管理 - 海洋生物多样性信息管理系统</title>
   <link rel="stylesheet" href="vendor/element-plus/index.css" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
+  <div id="topnav-host"></div>
+
   <div id="app">
-    <el-container class="app-container">
-      <!-- 侧边栏 -->
-      <el-aside width="220px" class="aside">
-        <div class="logo">
-          <span class="logo-main">🌊 海洋生物多样性</span>
-          <span class="logo-sub">信息管理系统</span>
+    <div class="module-wrap">
+      <div class="module-header">
+        <div>
+          <h2 class="module-title">🐚 物种信息管理</h2>
+          <p class="module-desc">海洋物种名录维护：分类学信息 · 保护等级 · 生态习性 · 地理分布（学生 / 公众只读，科研人员 / 管理员可录入编辑）</p>
         </div>
-        <el-menu :default-active="'species'" class="aside-menu">
-          <div class="menu-group">系统模块</div>
-          <el-menu-item index="module1" disabled>👥 用户与权限管理</el-menu-item>
-          <el-menu-item index="species" class="is-active">🐚 物种信息管理</el-menu-item>
-          <el-menu-item index="module3" disabled>🔭 生态系统与观测</el-menu-item>
-          <el-menu-item index="module4" disabled>📊 数据可视化</el-menu-item>
-          <el-menu-item index="module5" disabled>🤖 智能服务</el-menu-item>
-        </el-menu>
-        <div class="aside-footer">Demo v0.1 · 纯前端</div>
-      </el-aside>
+        <div>
+          <el-tag type="success" effect="light" round>共 {{ total }} 种物种</el-tag>
+        </div>
+      </div>
 
-      <!-- 主区域 -->
-      <el-container class="main-container">
-        <el-header class="header" height="60px">
-          <div class="header-left">
-            <h2 class="page-title">物种信息管理</h2>
-            <el-breadcrumb separator="/">
-              <el-breadcrumb-item>海洋生物多样性信息管理系统</el-breadcrumb-item>
-              <el-breadcrumb-item>物种信息管理</el-breadcrumb-item>
-            </el-breadcrumb>
+      <div class="stat-cards">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#e8f1fb">🐠</div>
+          <div class="stat-info"><div class="stat-num">{{ stats.total }}</div><div class="stat-label">物种总数</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#e8fbf0">🧬</div>
+          <div class="stat-info"><div class="stat-num">{{ stats.phylum }}</div><div class="stat-label">覆盖门类</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#fdf0e8">🛡️</div>
+          <div class="stat-info"><div class="stat-num">{{ stats.protected }}</div><div class="stat-label">国家保护物种</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#fde8e8">⚠️</div>
+          <div class="stat-info"><div class="stat-num">{{ stats.threatened }}</div><div class="stat-label">易危及以上</div></div>
+        </div>
+      </div>
+
+      <el-card shadow="never">
+        <div class="toolbar">
+          <el-input v-model="filters.keyword" placeholder="搜索名称 / 学名 / 别名 / 科属" clearable style="width: 260px" @input="resetPage">
+            <template #prefix><span>🔍</span></template>
+          </el-input>
+          <el-select v-model="filters.conservation" placeholder="濒危等级" clearable style="width: 180px" @change="resetPage">
+            <el-option v-for="c in conservationOptions" :key="c.value" :label="c.label" :value="c.value" />
+          </el-select>
+          <el-select v-model="filters.protection" placeholder="保护级别" clearable style="width: 180px" @change="resetPage">
+            <el-option v-for="p in protectionOptions" :key="p.value" :label="p.label" :value="p.value" />
+          </el-select>
+          <el-button @click="resetFilters">重置</el-button>
+          <div class="toolbar-right">
+            <el-button v-if="canManage" type="primary" @click="openCreate">＋ 新增物种</el-button>
+            <span v-else class="toolbar-tip">🔒 仅科研人员 / 管理员可录入编辑</span>
           </div>
-          <div class="header-right">
-            <el-tag type="success" effect="light" round>共 {{ total }} 种物种</el-tag>
-          </div>
-        </el-header>
+        </div>
 
-        <el-main class="main">
-          <el-card shadow="never" class="filter-card">
-            <!-- 搜索与筛选 -->
-            <div class="toolbar">
-              <el-input
-                v-model="filters.keyword"
-                placeholder="搜索名称 / 学名 / 别名 / 科属"
-                clearable
-                style="width: 260px"
-                @input="resetPage"
-              >
-                <template #prefix><span>🔍</span></template>
-              </el-input>
-              <el-select v-model="filters.conservation" placeholder="濒危等级" clearable style="width: 180px" @change="resetPage">
-                <el-option v-for="c in conservationOptions" :key="c.value" :label="c.label" :value="c.value" />
-              </el-select>
-              <el-select v-model="filters.protection" placeholder="保护级别" clearable style="width: 180px" @change="resetPage">
-                <el-option v-for="p in protectionOptions" :key="p.value" :label="p.label" :value="p.value" />
-              </el-select>
-              <el-button @click="resetFilters">重置</el-button>
-              <div class="toolbar-right">
-                <el-button type="primary" @click="openCreate">＋ 新增物种</el-button>
-              </div>
-            </div>
+        <el-table :data="paginatedList" stripe style="width: 100%" v-loading="loading">
+          <el-table-column label="图片" width="80">
+            <template #default="{ row }">
+              <el-image v-if="row.image" :src="row.image" fit="cover" class="thumb" :preview-src-list="[row.image]" preview-teleported />
+              <div v-else class="thumb thumb-empty">🌿</div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="name" label="物种名称" min-width="110" show-overflow-tooltip />
+          <el-table-column prop="scientificName" label="学名" min-width="170" show-overflow-tooltip />
+          <el-table-column label="科属" min-width="140">
+            <template #default="{ row }">
+              <span v-if="row.family && row.genus">{{ row.family }} · {{ row.genus }}</span>
+              <span v-else-if="row.family">{{ row.family }}</span>
+              <span v-else-if="row.genus">{{ row.genus }}</span>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="濒危等级" width="110" align="center">
+            <template #default="{ row }">
+              <el-tag :type="conservationTagType(row.conservationStatus)" size="small" effect="light">
+                {{ conservationLabel(row.conservationStatus) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="保护级别" width="110" align="center">
+            <template #default="{ row }">
+              <el-tag :type="protectionTagType(row.protectionLevel)" size="small" effect="plain">
+                {{ row.protectionLevel || '-' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="distribution" label="分布区域" min-width="160" show-overflow-tooltip />
+          <el-table-column label="操作" width="200" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click="viewDetail(row)">查看</el-button>
+              <template v-if="canManage">
+                <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
+                <el-button link type="danger" size="small" @click="removeSpecies(row)">删除</el-button>
+              </template>
+            </template>
+          </el-table-column>
+        </el-table>
 
-            <!-- 数据表格 -->
-            <el-table :data="paginatedList" stripe style="width: 100%" v-loading="loading">
-              <el-table-column label="图片" width="80">
-                <template #default="{ row }">
-                  <el-image
-                    v-if="row.image"
-                    :src="row.image"
-                    fit="cover"
-                    class="thumb"
-                    :preview-src-list="[row.image]"
-                    preview-teleported
-                  />
-                  <div v-else class="thumb thumb-empty">🌿</div>
-                </template>
-              </el-table-column>
-              <el-table-column prop="name" label="物种名称" min-width="110" show-overflow-tooltip />
-              <el-table-column prop="scientificName" label="学名" min-width="170" show-overflow-tooltip />
-              <el-table-column label="科属" min-width="140">
-                <template #default="{ row }">
-                  <span v-if="row.family && row.genus">{{ row.family }} · {{ row.genus }}</span>
-                  <span v-else-if="row.family">{{ row.family }}</span>
-                  <span v-else-if="row.genus">{{ row.genus }}</span>
-                  <span v-else>-</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="濒危等级" width="110" align="center">
-                <template #default="{ row }">
-                  <el-tag :type="conservationTagType(row.conservationStatus)" size="small" effect="light">
-                    {{ conservationLabel(row.conservationStatus) }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="保护级别" width="110" align="center">
-                <template #default="{ row }">
-                  <el-tag :type="protectionTagType(row.protectionLevel)" size="small" effect="plain">
-                    {{ row.protectionLevel || '-' }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="distribution" label="分布区域" min-width="160" show-overflow-tooltip />
-              <el-table-column label="操作" width="200" fixed="right">
-                <template #default="{ row }">
-                  <el-button link type="primary" size="small" @click="viewDetail(row)">查看</el-button>
-                  <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
-                  <el-button link type="danger" size="small" @click="removeSpecies(row)">删除</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
-
-            <!-- 分页 -->
-            <div class="pagination-row">
-              <el-pagination
-                background
-                layout="total, prev, pager, next, sizes"
-                :total="filteredList.length"
-                :current-page="page"
-                :page-size="pageSize"
-                :page-sizes="[5, 8, 10, 20]"
-                @current-change="page = $event"
-                @size-change="pageSize = $event; resetPage()"
-              />
-            </div>
-          </el-card>
-        </el-main>
-      </el-container>
-    </el-container>
+        <div class="pagination-row">
+          <el-pagination background layout="total, prev, pager, next, sizes" :total="filteredList.length" :current-page="page" :page-size="pageSize" :page-sizes="[5, 8, 10, 20]" @current-change="page = $event" @size-change="pageSize = $event; resetPage()" />
+        </div>
+      </el-card>
+    </div>
 
     <!-- 新增 / 编辑 对话框 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="780px" top="4vh" destroy-on-close>
@@ -141,12 +115,12 @@
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="物种名称" prop="name">
-              <el-input v-model="form.name" placeholder="如：大熊猫" />
+              <el-input v-model="form.name" placeholder="如：中华白海豚" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="学名">
-              <el-input v-model="form.scientificName" placeholder="如：Ailuropoda melanoleuca" />
+              <el-input v-model="form.scientificName" placeholder="如：Sousa chinensis" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -159,10 +133,10 @@
           <el-col :span="8"><el-form-item label="界"><el-input v-model="form.kingdom" placeholder="动物界" /></el-form-item></el-col>
           <el-col :span="8"><el-form-item label="门"><el-input v-model="form.phylum" placeholder="脊索动物门" /></el-form-item></el-col>
           <el-col :span="8"><el-form-item label="纲"><el-input v-model="form.classLevel" placeholder="哺乳纲" /></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="目"><el-input v-model="form.order" placeholder="食肉目" /></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="科"><el-input v-model="form.family" placeholder="熊科" /></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="属"><el-input v-model="form.genus" placeholder="大熊猫属" /></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="种"><el-input v-model="form.speciesName" placeholder="大熊猫" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="目"><el-input v-model="form.order" placeholder="鲸目" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="科"><el-input v-model="form.family" placeholder="海豚科" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="属"><el-input v-model="form.genus" placeholder="驼海豚属" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="种"><el-input v-model="form.speciesName" placeholder="中华白海豚" /></el-form-item></el-col>
         </el-row>
 
         <el-divider content-position="left">🛡️ 保护信息</el-divider>
@@ -213,13 +187,7 @@
         <el-divider content-position="left">🖼️ 物种图片</el-divider>
         <el-form-item label="图片">
           <div class="upload-wrap">
-            <el-upload
-              action="#"
-              :auto-upload="false"
-              :show-file-list="false"
-              accept="image/*"
-              :on-change="handleImageChange"
-            >
+            <el-upload action="#" :auto-upload="false" :show-file-list="false" accept="image/*" :on-change="handleImageChange">
               <div v-if="form.image" class="avatar-preview">
                 <img :src="form.image" alt="预览" />
                 <span class="avatar-clear" @click.stop.prevent="form.image = ''">✕ 移除</span>
@@ -242,14 +210,7 @@
     <el-drawer v-model="detailVisible" title="物种详情" size="520px">
       <div class="detail-body">
         <div class="detail-hero">
-          <el-image
-            v-if="current && current.image"
-            :src="current.image"
-            fit="cover"
-            class="detail-image"
-            :preview-src-list="[current.image]"
-            preview-teleported
-          />
+          <el-image v-if="current && current.image" :src="current.image" fit="cover" class="detail-image" :preview-src-list="[current.image]" preview-teleported />
           <div v-else class="detail-image detail-image-empty">🌿</div>
           <div class="detail-hero-info">
             <h3 class="detail-name">{{ current.name }}</h3>
@@ -257,7 +218,7 @@
             <p class="detail-alias" v-if="current.alias">别名：{{ current.alias }}</p>
             <div class="detail-tags">
               <el-tag :type="conservationTagType(current.conservationStatus)" size="small">{{ conservationLabel(current.conservationStatus) }}</el-tag>
-              <el-tag :type="protectionTagType(current.protectionLevel)" size="small" effect="plain">{{ current.protectionLevel }}</el-tag>
+              <el-tag :type="protectionTagType(current.protectionLevel)" size="small" effect="plain">{{ current.protectionLevel || '-' }}</el-tag>
             </div>
           </div>
         </div>
@@ -301,6 +262,7 @@
   <script src="vendor/element-plus/locale/zh-cn.min.js"></script>
   <script src="js/seed.js"></script>
   <script src="js/store.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

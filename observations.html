@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>观测记录管理 - 海洋生物多样性信息管理系统</title>
+  <link rel="stylesheet" href="vendor/element-plus/index.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="topnav-host"></div>
+
+  <div id="app">
+    <div class="module-wrap">
+      <div class="module-header">
+        <div>
+          <h2 class="module-title">🔭 观测记录管理</h2>
+          <p class="module-desc">外业调查记录 · 关联生态系统与物种 · 记录环境参数与观测物种数量行为</p>
+        </div>
+      </div>
+
+      <div class="stat-cards">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#e8f1fb">🔭</div>
+          <div class="stat-info"><div class="stat-num">{{ stats.total }}</div><div class="stat-label">观测记录总数</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#e8fbf0">🌿</div>
+          <div class="stat-info"><div class="stat-num">{{ stats.ecos }}</div><div class="stat-label">覆盖生态系统</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#fdf0e8">🐠</div>
+          <div class="stat-info"><div class="stat-num">{{ stats.species }}</div><div class="stat-label">记录到物种数</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#f4f4f5">👀</div>
+          <div class="stat-info"><div class="stat-num">{{ stats.observers }}</div><div class="stat-label">观测员人数</div></div>
+        </div>
+      </div>
+
+      <el-card shadow="never">
+        <div class="toolbar">
+          <el-select v-model="filterEcoId" placeholder="全部生态系统" clearable style="width: 210px">
+            <el-option v-for="e in ecoList" :key="e.id" :label="e.name" :value="e.id" />
+          </el-select>
+          <el-input v-model="keyword" placeholder="搜索物种名 / 观测员 / 备注" clearable style="width: 240px" @keyup.enter="resetPage">
+            <template #prefix>🔍</template>
+          </el-input>
+          <div class="toolbar-right">
+            <el-button v-if="canManage" type="primary" @click="openCreate">+ 新增观测记录</el-button>
+            <span v-else class="toolbar-tip">🔒 仅科研人员 / 管理员可录入编辑</span>
+          </div>
+        </div>
+
+        <el-table :data="paginatedList" stripe>
+          <el-table-column type="expand">
+            <template #default="{ row }">
+              <div class="expand-body">
+                <div style="font-size:13px;color:#606266;margin-bottom:10px">📝 <b>备注：</b>{{ row.remark || '无' }}</div>
+                <div class="expand-species">
+                  <div v-if="row.speciesSeen.length" class="expand-col-title">本次观测到的物种：</div>
+                  <div v-if="!row.speciesSeen.length" class="expand-col-title">本记录未填写观测物种。</div>
+                  <div v-for="s in row.speciesSeen" :key="s.speciesId" class="expand-line">
+                    <span class="expand-species-name">{{ speciesText(s.speciesId) }}</span>
+                    <el-tag size="small" type="success" effect="plain">{{ s.count > 0 ? s.count + ' 只/株' : '存在（未计数）' }}</el-tag>
+                    <span v-if="s.behavior" style="color:#909399;font-size:12px">　{{ s.behavior }}</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="date" label="日期" width="105" />
+          <el-table-column label="生态系统" min-width="190">
+            <template #default="{ row }">
+              <div style="font-weight:600;color:#1f2d3d">{{ ecoName(row.ecoId) }}</div>
+              <el-tag v-if="ecoType(row.ecoId)" :type="typeTag(ecoType(row.ecoId))" size="small" effect="light" style="margin-top:4px">{{ ecoType(row.ecoId) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="水温(°C)" width="88" align="center">
+            <template #default="{ row }">{{ row.temp == null || row.temp === '' ? '-' : row.temp }}</template>
+          </el-table-column>
+          <el-table-column label="盐度(‰)" width="88" align="center">
+            <template #default="{ row }">{{ row.salinity == null || row.salinity === '' ? '-' : row.salinity }}</template>
+          </el-table-column>
+          <el-table-column label="水深(m)" width="88" align="center">
+            <template #default="{ row }">{{ row.depth == null || row.depth === '' ? '-' : row.depth }}</template>
+          </el-table-column>
+          <el-table-column label="观测物种" width="96" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="row.speciesSeen.length" type="success" size="small">{{ row.speciesSeen.length }} 种</el-tag>
+              <span v-else style="color:#c0c4cc;font-size:12px">未填</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="observer" label="观测员" width="110" show-overflow-tooltip />
+          <el-table-column label="操作" width="150" fixed="right">
+            <template #default="{ row }">
+              <template v-if="canManage">
+                <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
+                <el-button link type="danger" size="small" @click="removeObs(row)">删除</el-button>
+              </template>
+              <span v-else style="color:#c0c4cc;font-size:12px">只读</span>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div class="pagination-row">
+          <el-pagination layout="total, prev, pager, next" :total="filteredList.length" :page-size="pageSize" v-model:current-page="page" background />
+        </div>
+      </el-card>
+    </div>
+
+    <!-- 新增 / 编辑对话框 -->
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="700px" top="6vh">
+      <el-form ref="formRef" :model="form" :rules="formRules" label-width="92px">
+        <el-row :gutter="14">
+          <el-col :span="12">
+            <el-form-item label="生态系统" prop="ecoId">
+              <el-select v-model="form.ecoId" placeholder="选择观测地点所在生态系" style="width:100%">
+                <el-option v-for="e in ecoList" :key="e.id" :label="e.name + '（' + (e.type || '未分类') + '）'" :value="e.id" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="观测日期" prop="date">
+              <el-date-picker v-model="form.date" type="date" value-format="YYYY-MM-DD" placeholder="选择日期" style="width:100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="经度">
+              <el-input v-model="form.longitude" placeholder="如 112.28" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="纬度">
+              <el-input v-model="form.latitude" placeholder="如 16.55" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="观测员">
+              <el-input v-model="form.observer" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="水温(°C)">
+              <el-input-number v-model="form.temp" :min="-10" :max="60" :step="0.5" :precision="1" controls-position="right" style="width:100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="盐度(‰)">
+              <el-input-number v-model="form.salinity" :min="0" :max="60" :step="0.5" :precision="1" controls-position="right" style="width:100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="水深(m)">
+              <el-input-number v-model="form.depth" :min="0" :max="11000" :step="1" controls-position="right" style="width:100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <div class="subform-title">🐠 观测到的物种清单
+              <el-button link type="primary" size="small" @click="addSpeciesRow">＋ 添加物种</el-button>
+              <span style="color:#c0c4cc;font-size:12px;margin-left:8px">数量填 0 表示“仅确认存在、未计数”（如珊瑚覆盖率、红树苗）</span>
+            </div>
+            <el-table :data="form.speciesSeen" border size="small" style="margin-top:6px">
+              <el-table-column label="物种" min-width="230">
+                <template #default="{ row }">
+                  <el-select v-model="row.speciesId" filterable placeholder="选择物种" style="width:100%">
+                    <el-option v-for="s in speciesOptions" :key="s.id" :label="s.name + '（' + (s.scientificName || '') + '）'" :value="s.id" />
+                  </el-select>
+                </template>
+              </el-table-column>
+              <el-table-column label="数量" width="150">
+                <template #default="{ row }">
+                  <el-input-number v-model="row.count" :min="0" :max="999999" controls-position="right" style="width:100%" />
+                </template>
+              </el-table-column>
+              <el-table-column label="行为 / 备注" min-width="220">
+                <template #default="{ row }">
+                  <el-input v-model="row.behavior" placeholder="如：群体游动 / 成体觅食" />
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="70" align="center">
+                <template #default="{ $index }">
+                  <el-button link type="danger" size="small" @click="removeSpeciesRow($index)">移除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <div v-if="!form.speciesSeen.length" style="color:#c0c4cc;font-size:12px;padding:6px 2px">尚未添加物种，可留空后在“备注”中说明。</div>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="记录备注" style="margin-top:14px">
+              <el-input v-model="form.remark" type="textarea" :rows="2" placeholder="调查背景、环境状况、异常情况等" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitForm">保存</el-button>
+      </template>
+    </el-dialog>
+  </div>
+
+  <script src="vendor/vue.global.js"></script>
+  <script src="vendor/element-plus/index.full.min.js"></script>
+  <script src="vendor/element-plus/locale/zh-cn.min.js"></script>
+  <script src="js/seed.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/page-observations.js"></script>
+</body>
+</html>

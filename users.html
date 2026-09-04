@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>用户与权限管理 - 海洋生物多样性信息管理系统</title>
+  <link rel="stylesheet" href="vendor/element-plus/index.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="topnav-host"></div>
+
+  <div id="app">
+    <div class="module-wrap">
+      <div class="module-header">
+        <div>
+          <h2 class="module-title">👥 用户与权限管理</h2>
+          <p class="module-desc">用户角色管理 · 注册申请审核 · 账号启用禁用 · 操作日志记录（本页仅管理员可访问）</p>
+        </div>
+      </div>
+
+      <div class="stat-cards">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#e8f1fb">👥</div>
+          <div class="stat-info"><div class="stat-num">{{ stats.total }}</div><div class="stat-label">用户总数</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#fdf0e8">⏳</div>
+          <div class="stat-info"><div class="stat-num">{{ stats.pending }}</div><div class="stat-label">待审核申请</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#e8fbf0">🔬</div>
+          <div class="stat-info"><div class="stat-num">{{ stats.researcher }}</div><div class="stat-label">科研人员</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#f4f4f5">📝</div>
+          <div class="stat-info"><div class="stat-num">{{ logs.length }}</div><div class="stat-label">操作日志数</div></div>
+        </div>
+      </div>
+
+      <el-card shadow="never">
+        <el-tabs v-model="tab">
+          <el-tab-pane label="用户管理" name="users">
+            <div class="toolbar">
+              <el-select v-model="filterRole" placeholder="全部角色" clearable style="width: 150px">
+                <el-option v-for="(lb, r) in roleLabels" :key="r" :label="lb" :value="r" />
+              </el-select>
+              <el-select v-model="filterStatus" placeholder="全部状态" clearable style="width: 150px">
+                <el-option label="正常" value="active" />
+                <el-option label="待审核" value="pending" />
+                <el-option label="已禁用" value="disabled" />
+              </el-select>
+            </div>
+
+            <el-table :data="filteredUsers" stripe>
+              <el-table-column prop="nickname" label="昵称" min-width="120" />
+              <el-table-column prop="username" label="用户名" min-width="110" />
+              <el-table-column label="角色" width="110">
+                <template #default="{ row }">
+                  <span :class="'role-tag-' + roleClass(row.role)">{{ roleLabels[row.role] || row.role }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="状态" width="100">
+                <template #default="{ row }">
+                  <el-tag v-if="row.status === 'active'" type="success" size="small" effect="light">正常</el-tag>
+                  <el-tag v-else-if="row.status === 'pending'" type="warning" size="small" effect="light">待审核</el-tag>
+                  <el-tag v-else type="info" size="small" effect="light">已禁用</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="email" label="邮箱" min-width="160" show-overflow-tooltip />
+              <el-table-column prop="createdAt" label="注册时间" width="110" />
+              <el-table-column label="操作" width="240" fixed="right">
+                <template #default="{ row }">
+                  <template v-if="row.status === 'pending'">
+                    <el-button link type="success" size="small" @click="audit(row, true)">审核通过</el-button>
+                    <el-button link type="danger" size="small" @click="audit(row, false)">拒绝</el-button>
+                  </template>
+                  <el-button v-else-if="row.status === 'active'" link type="warning" size="small" @click="toggleStatus(row)">禁用</el-button>
+                  <el-button v-else link type="success" size="small" @click="toggleStatus(row)">启用</el-button>
+                  <el-button link type="primary" size="small" @click="openRoleEdit(row)">改角色</el-button>
+                  <el-button v-if="row.username !== currentUser.username" link type="danger" size="small" @click="removeUser(row)">删除</el-button>
+                  <span v-else class="stat-self">当前账号</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-tab-pane>
+
+          <el-tab-pane label="操作日志" name="logs">
+            <div class="toolbar">
+              <span style="color:#909399;font-size:13px">系统所有关键操作自动记录</span>
+              <div style="margin-left:auto">
+                <el-button size="small" @click="loadLogs">刷新</el-button>
+                <el-button size="small" type="danger" plain @click="clearLogs">清空日志</el-button>
+              </div>
+            </div>
+            <el-table :data="logs" stripe>
+              <el-table-column prop="time" label="时间" width="160" />
+              <el-table-column prop="username" label="用户" width="110" />
+              <el-table-column label="角色" width="100">
+                <template #default="{ row }">
+                  <span :class="'role-tag-' + roleClassForLabel(row.role)">{{ row.role }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="action" label="操作" width="130" />
+              <el-table-column prop="detail" label="详情" min-width="260" show-overflow-tooltip />
+            </el-table>
+          </el-tab-pane>
+        </el-tabs>
+      </el-card>
+    </div>
+
+    <!-- 修改角色对话框 -->
+    <el-dialog v-model="roleVisible" title="修改用户角色" width="420px">
+      <p style="margin-bottom:12px;color:#606266">用户：<b>{{ roleEditUser.nickname }}</b>（{{ roleEditUser.username }}）</p>
+      <el-select v-model="roleEditVal" style="width:100%">
+        <el-option v-for="(lb, r) in roleLabels" :key="r" :label="lb" :value="r" />
+      </el-select>
+      <template #footer>
+        <el-button @click="roleVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveRole">保存</el-button>
+      </template>
+    </el-dialog>
+  </div>
+
+  <script src="vendor/vue.global.js"></script>
+  <script src="vendor/element-plus/index.full.min.js"></script>
+  <script src="vendor/element-plus/locale/zh-cn.min.js"></script>
+  <script src="js/seed.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/page-users.js"></script>
+</body>
+</html>

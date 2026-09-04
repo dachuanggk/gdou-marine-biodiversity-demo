@@ -41,7 +41,9 @@
 
   const app = Vue.createApp({
     data() {
+      const me = Auth.guard();
       return {
+        me,
         speciesList: SpeciesStore.loadData(),
         filters: { keyword: '', conservation: '', protection: '' },
         page: 1,
@@ -63,6 +65,18 @@
     },
 
     computed: {
+      canManage() {
+        return Auth.canManage();
+      },
+      stats() {
+        const phylum = new Set(this.speciesList.map((s) => s.phylum || '未分类'));
+        return {
+          total: this.speciesList.length,
+          phylum: phylum.size,
+          protected: this.speciesList.filter((s) => s.protectionLevel).length,
+          threatened: this.speciesList.filter((s) => ['VU', 'EN', 'CR'].includes(s.conservationStatus)).length
+        };
+      },
       filteredList() {
         return SpeciesStore.filterSpecies(this.speciesList, this.filters);
       },
@@ -76,6 +90,10 @@
       dialogTitle() {
         return this.editingId ? '编辑物种信息' : '新增物种信息';
       }
+    },
+
+    mounted() {
+      Auth.renderNav('topnav-host', 'species');
     },
 
     watch: {
@@ -112,9 +130,11 @@
           if (this.editingId) {
             SpeciesStore.updateSpecies(this.speciesList, this.editingId, this.form);
             ElMessage.success('修改成功');
+            SpeciesLog.addLog('编辑物种', this.me.username + ' 修改物种「' + this.form.name + '」信息');
           } else {
             SpeciesStore.createSpecies(this.speciesList, this.form);
             ElMessage.success('新增成功');
+            SpeciesLog.addLog('新增物种', this.me.username + ' 新增物种 ' + this.form.name);
           }
           this.dialogVisible = false;
           this.resetPage();
@@ -135,6 +155,7 @@
           .then(() => {
             SpeciesStore.deleteSpecies(this.speciesList, row.id);
             ElMessage.success(`已删除「${row.name}」`);
+            SpeciesLog.addLog('删除物种', this.me.username + ' 删除物种 ' + row.name);
           })
           .catch(() => {});
       },

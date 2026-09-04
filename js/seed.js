@@ -544,3 +544,90 @@ const SEED_SPECIES = [
     image: ''
   }
 ];
+
+/**
+ * 模块一：预置用户（密码均为 123456，纯演示用途）
+ */
+const SEED_USERS = [
+  { id: 1, username: 'admin', password: '123456', nickname: '系统管理员', role: 'admin', status: 'active', email: 'admin@gdou.edu.cn', createdAt: '2024-01-05' },
+  { id: 2, username: 'teacher', password: '123456', nickname: '李老师', role: 'researcher', status: 'active', email: 'teacher@gdou.edu.cn', createdAt: '2024-01-10' },
+  { id: 3, username: 'student', password: '123456', nickname: '张同学', role: 'student', status: 'active', email: 'student@gdou.edu.cn', createdAt: '2024-02-12' },
+  { id: 4, username: 'public', password: '123456', nickname: '海洋爱好者', role: 'public', status: 'active', email: 'pub@example.com', createdAt: '2024-03-03' },
+  { id: 5, username: 'waiting', password: '123456', nickname: '陈同学', role: 'student', status: 'pending', email: 'chen@gdou.edu.cn', createdAt: '2026-09-01' }
+];
+
+const ROLE_LABELS = {
+  admin: '管理员',
+  researcher: '科研人员',
+  student: '学生',
+  public: '公众'
+};
+
+/**
+ * 模块三a：预置海洋生态系统
+ */
+const SEED_ECOSYSTEMS = [
+  { id: 1, name: '西沙珊瑚礁生态系统', type: '造礁珊瑚礁', location: '南海西沙群岛', longitude: '112.30', latitude: '16.80', area: 120, description: '热带造礁珊瑚生态系统，海洋生物多样性最高的生态类型', owner: 'teacher', createdAt: '2024-01-20' },
+  { id: 2, name: '湛江红树林生态系统', type: '红树林', location: '广东湛江高桥', longitude: '109.72', latitude: '21.53', area: 180, description: '中国面积最大的红树林自然保护区，重要的候鸟与底栖生物栖息地', owner: 'teacher', createdAt: '2024-02-05' },
+  { id: 3, name: '北部湾海草床', type: '海草床', location: '广西北部湾', longitude: '109.15', latitude: '21.30', area: 80, description: '儒艮的重要觅食地，海草覆盖的浅水海域', owner: 'teacher', createdAt: '2024-02-20' },
+  { id: 4, name: '南海深海生态系统', type: '深海', location: '南海深海盆地', longitude: '116.50', latitude: '18.00', area: 300, description: '深海热泉与冷泉生态系统的探索区域', owner: 'teacher', createdAt: '2024-03-12' },
+  { id: 5, name: '雷州湾滩涂湿地', type: '滩涂湿地', location: '广东雷州半岛', longitude: '110.02', latitude: '20.90', area: 90, description: '潮间带滩涂，越冬候鸟与滩涂贝类的栖息地', owner: 'teacher', createdAt: '2024-04-01' }
+];
+
+const ECOSYSTEM_TYPES = ['造礁珊瑚礁', '红树林', '海草床', '深海', '滩涂湿地', '河口湿地'];
+
+/**
+ * 模块三b：预置观测记录（speciesSeen 关联模块二物种 id）
+ */
+const SEED_OBSERVATIONS = [
+  {
+    id: 1, ecoId: 1, date: '2024-04-15', longitude: '112.28', latitude: '16.55',
+    observer: '李老师', temp: 27.5, salinity: 34, depth: 8,
+    speciesSeen: [
+      { speciesId: 1006, count: 0, behavior: '珊瑚覆盖率约35%，生长健康' },
+      { speciesId: 1016, count: 15, behavior: '成体分布于礁坪浅水处' },
+      { speciesId: 1017, count: 300, behavior: '集群游动于珊瑚枝间' },
+      { speciesId: 1003, count: 2, behavior: '在礁缘觅食海绵' }
+    ],
+    remark: '西沙珊瑚礁季度生态调查',
+    createdAt: '2024-04-15'
+  },
+  {
+    id: 2, ecoId: 2, date: '2024-05-20', longitude: '109.72', latitude: '21.53',
+    observer: '李老师', temp: 28.2, salinity: 22, depth: 1,
+    speciesSeen: [
+      { speciesId: 1010, count: 0, behavior: '秋茄为优势树种，胎生苗更新良好' }
+    ],
+    remark: '湛江红树林样带调查',
+    createdAt: '2024-05-20'
+  },
+  {
+    id: 3, ecoId: 3, date: '2024-06-10', longitude: '109.15', latitude: '21.30',
+    observer: '李老师', temp: 29.0, salinity: 30, depth: 3,
+    speciesSeen: [
+      { speciesId: 1004, count: 3, behavior: '儒艮群体在海草场觅食' },
+      { speciesId: 1015, count: 20, behavior: '分布在海草床边缘' }
+    ],
+    remark: '北部湾海草床儒艮专项监测',
+    createdAt: '2024-06-10'
+  },
+  {
+    id: 4, ecoId: 4, date: '2024-07-05', longitude: '116.50', latitude: '18.00',
+    observer: '李老师', temp: 4.0, salinity: 35, depth: 1200,
+    speciesSeen: [
+      { speciesId: 1013, count: 1, behavior: '深潜个体，水下声学记录' }
+    ],
+    remark: '南海深海生态系统科考',
+    createdAt: '2024-07-05'
+  },
+  {
+    id: 5, ecoId: 1, date: '2024-08-18', longitude: '113.60', latitude: '22.10',
+    observer: '李老师', temp: 30.1, salinity: 33, depth: 5,
+    speciesSeen: [
+      { speciesId: 1005, count: 4, behavior: '成体在近岸浅水觅食海草' },
+      { speciesId: 1014, count: 8, behavior: '跟随调查船跃出水面' }
+    ],
+    remark: '南海珊瑚礁近岸水域巡航调查',
+    createdAt: '2024-08-18'
+  }
+];

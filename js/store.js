@@ -104,4 +104,92 @@
     deleteSpecies,
     filterSpecies
   };
+
+  // ============ 通用集合数据层（模块一 / 模块三） ============
+  function makeCollection(key, seed) {
+    function load() {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (Array.isArray(p)) return p;
+        }
+      } catch (e) { /* 使用种子数据 */ }
+      return seed.slice();
+    }
+    function save(list) {
+      try { localStorage.setItem(key, JSON.stringify(list)); return true; }
+      catch (e) { console.warn('保存本地数据失败', key, e); return false; }
+    }
+    function create(list, obj) {
+      const item = Object.assign({}, obj, { id: Date.now() });
+      list.unshift(item);
+      save(list);
+      return item;
+    }
+    function update(list, id, obj) {
+      const i = list.findIndex((x) => x.id === id);
+      if (i < 0) return false;
+      list[i] = Object.assign({}, list[i], obj, { id });
+      save(list);
+      return true;
+    }
+    function remove(list, id) {
+      const i = list.findIndex((x) => x.id === id);
+      if (i < 0) return false;
+      list.splice(i, 1);
+      save(list);
+      return true;
+    }
+    return { KEY: key, load, save, create, update, remove };
+  }
+
+  const UserStore = makeCollection('mbis_users_v1', SEED_USERS);
+  const EcoStore = makeCollection('mbis_ecosystems_v1', SEED_ECOSYSTEMS);
+  const ObsStore = makeCollection('mbis_observations_v1', SEED_OBSERVATIONS);
+
+  // ============ 操作日志（模块一） ============
+  const LOG_KEY = 'mbis_logs_v1';
+
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function nowStr() {
+    const d = new Date();
+    return (
+      d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) +
+      ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds())
+    );
+  }
+
+  function loadLogs() {
+    try {
+      const raw = localStorage.getItem(LOG_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* 空日志 */ }
+    return [];
+  }
+
+  function addLog(action, detail) {
+    const logs = loadLogs();
+    const u = global.Auth ? global.Auth.currentUser() : null;
+    logs.unshift({
+      id: Date.now(),
+      time: nowStr(),
+      username: u ? u.username : '-',
+      role: u ? (ROLE_LABELS[u.role] || u.role) : '未登录',
+      action,
+      detail: detail || ''
+    });
+    try { localStorage.setItem(LOG_KEY, JSON.stringify(logs)); } catch (e) { /* 忽略 */ }
+    return logs;
+  }
+
+  function clearLogs() {
+    try { localStorage.removeItem(LOG_KEY); } catch (e) { /* 忽略 */ }
+  }
+
+  global.UserStore = UserStore;
+  global.EcoStore = EcoStore;
+  global.ObsStore = ObsStore;
+  global.SpeciesLog = { loadLogs, addLog, clearLogs };
 })(window);
