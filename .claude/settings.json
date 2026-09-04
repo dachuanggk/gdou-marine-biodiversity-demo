@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check js/app.js)",
+      "Bash(node --check js/seed.js)"
+    ]
+  }
+}

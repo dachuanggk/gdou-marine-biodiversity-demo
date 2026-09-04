@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>功能自检 - 海洋生物多样性信息管理系统</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 32px 24px;
+      color: #303133;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    h1 { font-size: 20px; color: #1f2d3d; }
+    .desc { color: #909399; font-size: 13px; margin-bottom: 16px; }
+    .summary-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      border: 1px solid #e6e8eb;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .summary-num { font-size: 26px; font-weight: 700; }
+    .summary-num.ok { color: #67c23a; }
+    .summary-num.bad { color: #f56c6c; }
+    .summary-sub { color: #909399; font-size: 13px; }
+    ul { list-style: none; margin: 0; padding: 0; }
+    li {
+      background: #fff;
+      border: 1px solid #e6e8eb;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    li.fail { border-color: #fbc4c4; background: #fef0f0; }
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .badge.pass { background: #67c23a; }
+    .badge.fail { background: #f56c6c; }
+    .detail { color: #909399; font-size: 12px; margin-left: auto; text-align: right; }
+    .hint {
+      background: #fdf6ec;
+      border: 1px solid #faecd8;
+      color: #b88230;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      margin-top: 16px;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🐚 物种信息管理模块 — 功能自检</h1>
+    <p class="desc">本页面自动验证：前端库加载、演示数据完整性、localStorage、数据层增删改查、筛选逻辑。全部通过后，主页面 index.html 即可正常使用。</p>
+
+    <div class="summary-card">
+      <div class="summary-num" id="summaryNum">运行中…</div>
+      <div class="summary-sub">通过 / 总用例数</div>
+    </div>
+
+    <ul id="results"></ul>
+
+    <div class="hint">
+      <b>排查指引：</b><br />
+      1. 若下方出现「资源加载失败」类错误 → 请确认本页与项目文件在同一目录，且未修改 vendor 目录。<br />
+      2. 若全部 PASS → 直接打开 <b>index.html</b> 即可正常展示。<br />
+      3. 若 CRUD 相关用例失败 → 说明浏览器禁止 localStorage 写入（如无痕/隐私模式或 file:// 受限），请改用 VS Code「Live Server」打开。
+    </div>
+  </div>
+
+  <script src="vendor/vue.global.prod.min.js"></script>
+  <script src="vendor/element-plus/index.full.min.js"></script>
+  <script src="vendor/element-plus/locale/zh-cn.min.js"></script>
+  <script src="js/seed.js"></script>
+  <script src="js/store.js"></script>
+  <script>
+    (function () {
+      var results = [];
+      var passed = 0;
+
+      function record(name, pass, detail) {
+        results.push({ name: name, pass: !!pass, detail: detail || (pass ? '通过' : '失败') });
+        if (pass) passed++;
+      }
+
+      function assert(name, cond, detail) {
+        record(name, cond, detail);
+      }
+
+      // ---------- 1. 前端库资源 ----------
+      record('Vue 3 已加载', typeof Vue !== 'undefined', typeof Vue);
+      record('Element Plus 已加载', typeof ElementPlus !== 'undefined', typeof ElementPlus);
+      record('中文语言包已加载', typeof ElementPlusLocaleZhCn !== 'undefined', typeof ElementPlusLocaleZhCn);
+
+      // Vue 实际挂载一个最小实例，验证运行环境
+      var mountOk = false;
+      try {
+        var probe = document.createElement('div');
+        document.body.appendChild(probe);
+        var probeApp = Vue.createApp({ template: '<span id="probe">ok</span>' });
+        probeApp.use(ElementPlus, { locale: ElementPlusLocaleZhCn });
+        probeApp.mount(probe);
+        mountOk = probe.querySelector('#probe') && probe.querySelector('#probe').textContent === 'ok';
+        probeApp.unmount();
+        probe.remove();
+      } catch (e) { mountOk = false; }
+      record('Vue 实例可正常挂载', mountOk, mountOk ? '通过' : '报错，查看浏览器控制台');
+
+      // ---------- 2. 演示数据 ----------
+      record('SEED_SPECIES 已定义', Array.isArray(SEED_SPECIES));
+      if (Array.isArray(SEED_SPECIES)) {
+        record('演示数据条数 ≥ 8', SEED_SPECIES.length >= 8, '共 ' + SEED_SPECIES.length + ' 条');
+
+        var required = ['name','scientificName','kingdom','phylum','classLevel','order','family','genus','conservationStatus','protectionLevel','distribution','longitude','latitude'];
+        var missing = [];
+        SEED_SPECIES.forEach(function (s, i) {
+          required.forEach(function (k) { if (!s[k]) missing.push('[' + i + '].' + k); });
+        });
+        record('演示数据字段完整', missing.length === 0, missing.length ? '缺少: ' + missing.join(' ') : '全部字段完整');
+
+        var levels = new Set(SEED_SPECIES.map(function (s) { return s.protectionLevel; }));
+        var statuses = new Set(SEED_SPECIES.map(function (s) { return s.conservationStatus; }));
+        record('保护级别覆盖 ≥ 2 种', levels.size >= 2, Array.prototype.slice.call(levels).join(' / '));
+        record('濒危等级覆盖 ≥ 3 种', statuses.size >= 3, Array.prototype.slice.call(statuses).join(' / '));
+      }
+
+      // ---------- 3. localStorage ----------
+      var lsOk = false;
+      try { localStorage.setItem('__t', '1'); lsOk = localStorage.getItem('__t') === '1'; localStorage.removeItem('__t'); } catch (e) {}
+      record('localStorage 可读写', lsOk, lsOk ? '通过' : '被浏览器禁用');
+
+      // ---------- 4. 数据层加载 ----------
+      var loaded = null;
+      try { loaded = SpeciesStore.loadData(); } catch (e) {}
+      record('SpeciesStore.loadData 返回数组', Array.isArray(loaded), Array.isArray(loaded) ? '长度 ' + loaded.length : '调用失败');
+      record('SpeciesStore.emptyForm 字段完整', Object.keys(SpeciesStore.emptyForm()).length >= 20, Object.keys(SpeciesStore.emptyForm()).length + ' 个字段');
+
+      // ---------- 5. CRUD 单元测试（隔离，结束后恢复原始数据） ----------
+      var key = SpeciesStore.STORAGE_KEY;
+      var backup = null;
+      try { backup = localStorage.getItem(key); } catch (e) {}
+      try {
+        localStorage.removeItem(key);
+        var testList = [];
+
+        var created = SpeciesStore.createSpecies(testList, { name: '测试物种', scientificName: 'Testus sp.' });
+        record('create：返回新对象', created && !!created.id, created ? 'id=' + created.id : '返回空');
+        record('create：列表增 1 条', testList.length === 1, '长度 ' + testList.length);
+        record('create：默认空字段已补齐', testList[0].kingdom === '' && testList[0].longitude === '', JSON.stringify(testList[0].kingdom) + ' / ' + JSON.stringify(testList[0].longitude));
+        record('create：已写入 localStorage', localStorage.getItem(key) !== null, localStorage.getItem(key) === null ? '未写入' : '已写入');
+
+        var upd = SpeciesStore.updateSpecies(testList, created.id, { name: '测试物种改', protectionLevel: '一级' });
+        record('update：返回 true', upd === true);
+        record('update：目标字段已修改', testList[0].name === '测试物种改' && testList[0].protectionLevel === '一级', testList[0].name + ' / ' + testList[0].protectionLevel);
+        record('update：未修改字段保留', testList[0].scientificName === 'Testus sp.', testList[0].scientificName);
+        record('update：不存在 id 返回 false', SpeciesStore.updateSpecies(testList, 999999, {}) === false);
+
+        var del = SpeciesStore.deleteSpecies(testList, created.id);
+        record('delete：返回 true', del === true);
+        record('delete：列表为空', testList.length === 0, '长度 ' + testList.length);
+        record('delete：不存在 id 返回 false', SpeciesStore.deleteSpecies(testList, created.id) === false);
+      } catch (e) {
+        record('CRUD 用例异常', false, '抛错: ' + e.message);
+      } finally {
+        try {
+          if (backup === null) localStorage.removeItem(key);
+          else localStorage.setItem(key, backup);
+        } catch (e) {}
+      }
+
+      // ---------- 6. 筛选逻辑 ----------
+      if (Array.isArray(SEED_SPECIES)) {
+        var fl = SEED_SPECIES.map(function (s, i) { return Object.assign({}, s, { id: i }); });
+        record('filter：关键词命中中文名', SpeciesStore.filterSpecies(fl, { keyword: '白海豚' }).length === 1,
+          '命中 ' + SpeciesStore.filterSpecies(fl, { keyword: '白海豚' }).length + ' 条');
+        record('filter：关键词命中学名(忽略大小写)', SpeciesStore.filterSpecies(fl, { keyword: 'chelonia' }).length === 1,
+          '命中 ' + SpeciesStore.filterSpecies(fl, { keyword: 'chelonia' }).length + ' 条');
+        record('filter：按濒危等级 CR', SpeciesStore.filterSpecies(fl, { conservation: 'CR' }).length >= 2,
+          '命中 ' + SpeciesStore.filterSpecies(fl, { conservation: 'CR' }).length + ' 条');
+        record('filter：按保护级别 一级', SpeciesStore.filterSpecies(fl, { protection: '一级' }).length >= 4,
+          '命中 ' + SpeciesStore.filterSpecies(fl, { protection: '一级' }).length + ' 条');
+        record('filter：组合筛选 VU+一级', SpeciesStore.filterSpecies(fl, { conservation: 'VU', protection: '一级' }).length >= 1,
+          '命中 ' + SpeciesStore.filterSpecies(fl, { conservation: 'VU', protection: '一级' }).length + ' 条');
+      }
+
+      // ---------- 渲染结果 ----------
+      var summaryEl = document.getElementById('summaryNum');
+      summaryEl.textContent = passed + ' / ' + results.length;
+      summaryEl.className = 'summary-num ' + (passed === results.length ? 'ok' : 'bad');
+
+      var ul = document.getElementById('results');
+      results.forEach(function (r) {
+        var li = document.createElement('li');
+        li.className = r.pass ? '' : 'fail';
+        var badge = document.createElement('span');
+        badge.className = 'badge ' + (r.pass ? 'pass' : 'fail');
+        badge.textContent = r.pass ? 'PASS' : 'FAIL';
+        var name = document.createElement('span');
+        name.textContent = r.name;
+        var detail = document.createElement('span');
+        detail.className = 'detail';
+        detail.textContent = r.detail;
+        li.appendChild(badge);
+        li.appendChild(name);
+        li.appendChild(detail);
+        ul.appendChild(li);
+      });
+    })();
+  </script>
+</body>
+</html>
